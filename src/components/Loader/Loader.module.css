@@ -1,0 +1,11 @@
+.Watch {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 40px;
+    transform-origin: 50% 50%;
+}
+
+/* .Watch {
+  position: relative;
+  margin: 0 auto;
+} */
