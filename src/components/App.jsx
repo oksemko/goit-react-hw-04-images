@@ -129,7 +129,7 @@ export function App() {
 
       {showModal && (
         <Modal onClose={toggleModal}>
-          <img src={handleData().imageURL} alt={this.handleData().alt} />
+          <img src={handleData().imageURL} alt={handleData().alt} />
         </Modal>
       )}
     </div>
