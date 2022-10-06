@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { Watch } from 'react-loader-spinner';
 
 import { ServiceAPI } from './API/API';
@@ -11,44 +11,45 @@ import { Modal } from './Modal/Modal';
 // import styles from './App.module.css';
 import styles from './Loader/Loader.module.css';
 
+import { Notify } from 'notiflix/build/notiflix-notify-aio';
 
-export class App extends Component {
-  state = {
-    query: '',
-    data: [],
-    page: 1,
-    error: null,
-    status: 'idle',
-    showModal: false,
-    imgId: null,
-    total: 0,
-  };
 
-  componentDidUpdate(_prevProps, prevState) {
-    if (this.state.query !== prevState.query) {
-      this.setState({ status: 'pending', data: [], page: 1 }, this.getPicture);
+
+export function App() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [data, setData] = useState([]);
+  const [page, setPage] = useState(1);
+  const [error, setError] = useState(null);
+  const [status, setStatus] = useState('idle');
+  const [showModal, setShowModal] = useState(false);
+  const [imgId, setImgId] = useState(null);
+  const [total, setTotal] = useState(0);
+
+
+  useEffect(() => {
+    if (!searchQuery) {
+      return;
     }
-    if (this.state.page !== prevState.page && this.state.page !== 1) {
-      this.setState({ status: 'pending' }, this.getPicture);
-    }
-  }
 
-  getPicture = () => {
-    const { query } = this.state;
-    const { page } = this.state;
-    ServiceAPI(query, page)
-      .then(this.dataProcessing)
-      .catch(error => this.setState({ error, status: 'rejected' }));
-  };
+    const getPicture = () => {
+      setStatus('pending');
+      ServiceAPI(searchQuery, page)
+        .then(dataProcessing)
+        .catch(error => {
+          setError(error);
+          setStatus('rejected');
+        });
+    };
+    getPicture();
+  }, [page, searchQuery]);
 
-  dataProcessing = response => {
+
+  const dataProcessing = response => {
     const { hits: dataArray, totalHits } = response.data;
 
     if (!dataArray.length) {
-      this.setState({
-        status: 'rejected',
-        error: new Error('Try to change the request'),
-      });
+      setStatus('rejected');
+      setError(new Error('Try to change the request ✍️'));
       return;
     }
 
@@ -57,7 +58,7 @@ export class App extends Component {
       behavior: 'smooth',
     });
 
-    const newData = dataArray.map(data => {
+    const data = dataArray.map(data => {
       const {
         id,
         largeImageURL: imageURL,
@@ -66,85 +67,73 @@ export class App extends Component {
       } = data;
       return { id, imageURL, src, alt };
     });
-    return this.setState(({ data }) => {
-      return {
-        data: [...data, ...newData],
-        total: totalHits,
-        status: 'resolved',
-      };
-    });
+    setData(state => [...state, ...data]);
+    setTotal(totalHits);
+    setStatus('resolved');
   };
 
-  handleSubmit = searchQuery => {
-    if (this.state.query !== searchQuery) {
-      this.setState({ query: searchQuery });
+  const handleSubmit = newSearchQuery => {
+    if (searchQuery !== newSearchQuery) {
+      setSearchQuery(newSearchQuery);
+      setPage(1);
+      setData([]);
     }
     return;
   };
 
-  handleLoadMore = () => {
-    this.setState(({ page }) => {
-      return { page: page + 1 };
-    });
+  const toggleModal = () => {
+    setShowModal(state => !state);
   };
 
-  toggleModal = () => {
-    this.setState(({ showModal }) => ({ showModal: !showModal }));
+  const clickOnImage = id => {
+    setImgId(id);
+    toggleModal();
   };
 
-  clickOnImage = id => {
-    this.setState({ imgId: id });
-    this.toggleModal();
+  const handleLoadMore = () => {
+    setPage(state => state + 1);
   };
 
-  handleData = () => {
-    return this.state.data.find(img => img.id === this.state.imgId);
+  const handleData = () => {
+    return data.find(data => data.id === imgId);
   };
 
+  return (
+    <div className={styles.App}>
+      <Searchbar onSubmit={handleSubmit} />
+      {data.length > 0 && <ImageGallery data={data} onClick={clickOnImage} />}
+      {status === 'resolved' && data.length > 0 && data.length < total && (
+        <>
+           { Notify.info(`Hooray! Here You can see ${searchQuery}. 🤩`) }
+          <Button onClick={handleLoadMore} />
+        </>
+      )}
 
-  render() {
-    const { status, error, data, showModal, total } = this.state;
+      {status === 'pending' && (
+        <div className={styles.Watch}>
+          <Watch
+            color="#00BFFF"
+            height={200}
+            width={200}
+            ariaLabel="watch-loading"
+          />
+          <Loader />
+        </div>
+      )}
 
-    return (
-      <div className={styles.App}>
-        <Searchbar onSubmit={this.handleSubmit} />
-        {data.length > 0 && (
-          <ImageGallery data={this.state.data} onClick={this.clickOnImage} />
-        )}
+      {status === 'rejected' && (
+        <div className={styles.ImageGallery}>
+          <p>{Notify.failure(`Something went wrong! ⚠️ ${error}`)}</p>
+        </div>
+      )}
 
-
-        {status === 'resolved' && data.length > 0 && data.length < total && (
-          <>
-            <Button onClick={this.handleLoadMore} />
-          </>
-        )}
-
-        {status === 'pending' && (
-          <div className={styles.Watch}>
-            <Watch
-              color="#00BFFF"
-              height={200}
-              width={200}
-              ariaLabel="watch-loading"
-            />
-            <Loader />
-          </div>
-        )}
-
-        {status === 'rejected' && (
-          <div className={styles.ImageGallery}>
-            <p>{`Something went wrong! ${error}`}</p>
-          </div>
-        )}
-
-        {showModal && (
-          <Modal onClose={this.toggleModal}>
-            <img src={this.handleData().imageURL} alt={this.handleData().alt} />
-          </Modal>
-        )}
-      </div>
-    );
-  }
+      {showModal && (
+        <Modal onClose={toggleModal}>
+          <img src={handleData().imageURL} alt={this.handleData().alt} />
+        </Modal>
+      )}
+    </div>
+  );
 }
 
 

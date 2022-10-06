@@ -1,42 +1,30 @@
+import { useState } from 'react';
 import PropTypes from 'prop-types';
-import { Component } from 'react';
 
 import styles from './Searchbar.module.css';
 
 
-export class Searchbar extends Component {
-  static defaultProps = { onSubmit: null };
+export function Searchbar({ onSubmit }) {
+  const [searchQuery, setSearchQuery] = useState('');
 
-  static propTypes = {
-    onSubmit: PropTypes.func.isRequired,
-  };
-  state = {
-    searchQuery: '',
+  const handleInputChange = event => {
+    setSearchQuery(event.currentTarget.value);
   };
 
-  handleInputChange = event => {
-    const { name, value } = event.currentTarget;
-    this.setState({ [name]: value });
-  };
-
-  handleSubmit = event => {
+  const handleSubmit = event => {
     event.preventDefault();
-
-  const { searchQuery } = this.state;
-  const searchQueryNormalize = searchQuery.trim().toLowerCase();
-
-if (!searchQueryNormalize) {
-  return;
+    const searchQueryNormalize = searchQuery.trim().toLowerCase();
+    if (!searchQueryNormalize) {
+      return;
 }
 
-this.props.onSubmit(searchQueryNormalize);
-this.setState({ searchQuery: '' });
-};
+onSubmit(searchQueryNormalize);
+setSearchQuery('');
+  };
 
-render() {
   return (
     <header className={styles.Searchbar}>
-      <form className={styles.SearchForm} onSubmit={this.handleSubmit}>
+      <form className={styles.SearchForm} onSubmit={handleSubmit}>
         <button type="submit" className={styles.SearchFormButton}>
           {/* <svg id="search-icon" viewBox="0 0 32 32" width="22" height="22">
           <path
@@ -53,11 +41,14 @@ render() {
           autoComplete="off"
           autoFocus
           placeholder="Search images and photos ... 👀"
-          value={this.state.searchQuery}
-          onChange={this.handleInputChange}
+          value={searchQuery}
+          onChange={handleInputChange}
         />
       </form>
     </header>
   );
-  }
+}
+
+Searchbar.popTypes = {
+  onSubmit: PropTypes.func.isRequired,
 }
