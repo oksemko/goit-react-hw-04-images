@@ -40,7 +40,7 @@ setSearchQuery('');
           name="searchQuery"
           autoComplete="off"
           autoFocus
-          placeholder="Search images and photos ... 👀"
+          placeholder="Search images and photos ... 🧐"
           value={searchQuery}
           onChange={handleInputChange}
         />
